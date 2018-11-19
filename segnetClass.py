@@ -28,18 +28,25 @@ class SegNet(nn.Module):
         self.batch20 = nn.BatchNorm2d(256, momentum=self.batchMomentum)
         self.conv21 = nn.Conv2d(256, 256, kernel_size=3, padding=1)
         self.batch21 = nn.BatchNorm2d(256, momentum=self.batchMomentum)
+        self.conv22 = nn.Conv2d(256, 256, kernel_size=3, padding=1)
+        self.batch22 = nn.BatchNorm2d(256, momentum=self.batchMomentum)
 
         self.conv30 = nn.Conv2d(256, 512, kernel_size=3, padding=1)
         self.batch30 = nn.BatchNorm2d(512, momentum=self.batchMomentum)
         self.conv31 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
         self.batch31 = nn.BatchNorm2d(512, momentum=self.batchMomentum)
+        self.conv32 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        self.batch32 = nn.BatchNorm2d(512, momentum=self.batchMomentum)
 
         self.conv40 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
         self.batch40 = nn.BatchNorm2d(512, momentum=self.batchMomentum)
         self.conv41 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
         self.batch41 = nn.BatchNorm2d(512, momentum=self.batchMomentum)
+        # self.conv42 = nn.Conv2d(512, self.output_channels, kernel_size=3, padding=1)
+        self.conv42 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        self.batch42 = nn.BatchNorm2d(512, momentum=self.batchMomentum)
 
-        #decoder
+        # decoder
         self.conv41d = nn.Conv2d(512, 512, kernel_size=3, padding=1)
         self.batch41d = nn.BatchNorm2d(512, momentum=self.batchMomentum)
         self.conv40d = nn.Conv2d(512, 512, kernel_size=3, padding=1)
@@ -77,15 +84,19 @@ class SegNet(nn.Module):
 
         x20 = F.relu(self.batch20(self.conv20(x1Pool)))
         x21 = F.relu(self.batch21(self.conv21(x20)))
-        x2Pool, xIdx2 = F.max_pool2d(x21, kernel_size=2, stride=2, return_indices=True)
+        x22 = F.relu(self.batch22(self.conv22(x21)))
+        x2Pool, xIdx2 = F.max_pool2d(x22, kernel_size=2, stride=2, return_indices=True)
 
         x30 = F.relu(self.batch30(self.conv30(x2Pool)))
         x31 = F.relu(self.batch31(self.conv31(x30)))
-        x3Pool, xIdx3 = F.max_pool2d(x31, kernel_size=2, stride=2, return_indices=True)
+        x32 = F.relu(self.batch32(self.conv31(x31)))
+        x3Pool, xIdx3 = F.max_pool2d(x32, kernel_size=2, stride=2, return_indices=True)
 
         x40 = F.relu(self.batch40(self.conv40(x3Pool)))
         x41 = F.relu(self.batch41(self.conv41(x40)))
-        x4Pool, xIdx4 = F.max_pool2d(x41, kernel_size=2, stride=2, return_indices=True)
+        x42 = F.relu(self.batch42(self.conv42(x41)))
+        # return F.relu(self.conv42(x41))
+        x4Pool, xIdx4 = F.max_pool2d(x42, kernel_size=2, stride=2, return_indices=True)
 
         #decoding layer
         x4Unpool = F.max_unpool2d(x4Pool, xIdx4, kernel_size=2, stride=2)
