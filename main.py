@@ -10,13 +10,20 @@ import torch
 import cv2
 import os
 import sys
+import numpy as np
 
 def main():
     while(True):
-        transform = transforms.Compose([transforms.ToTensor(),
+        transform = transforms.Compose([
+                                        transforms.ToPILImage(),
+                                        transforms.RandomCrop([256,256], pad_if_needed=True),
+                                        transforms.ToTensor(),
                                         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-        trainset = VOCDataset("/home/matt/Documents/segm/VOCdevkit/VOC2007/", "JPEGImages", "SegmentationObject", transform)
+        trainset = VOCDataset("/home/matt/Documents/segm/VOCdevkit/VOC2007/", "JPEGImages", "SegmentationObject", annoPath="Annotations", transform=transform, segment=True)
+        #num_workers = 0 means that the mian process is doing the loading.
+        #since each worker loads a batch, then we can have batch_size*num_workers loads before erroring
+        #when the data is combined.
         trainLoader = DataLoader(trainset, batch_size=4, shuffle=True, num_workers=2)
 
         savePath = "/home/matt/Documents/segm/weightsFile.txt"
@@ -60,7 +67,7 @@ def train(net, trainLoader):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
     #learning rate 0.1 and momentum 0.9 given by segnet paper.
-    print ("asdf")
+    print ("training")
     for epoch in range(2):
 
         running_loss = 0
@@ -70,19 +77,24 @@ def train(net, trainLoader):
             #num iterations x batch size = num. images
             try:
                 data = dataiter.next()
+                print ("success")
             except TypeError as e:
+                raise(e)
                 # print ("guilty")
-                continue
+                # continue
             inputs = data["image"]
-            labels = data["annotation"] #has shape (w,x,y,z) where w is batch size?
+            labels = data["annotation"] #for segmentation, has shape (w,x,y,z) where w is batch size?
             #x is no. channels in image, y,z are (width, height) of image. i.e. label per pixel
 
             optimizer.zero_grad()
 
             outputs = net(inputs)
-            print (outputs.shape)
+            print (outputs.shape, "guilty")
             print (labels.shape)
             loss = criterion(outputs, labels.long())
+
+            #segment=False
+            # loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
 

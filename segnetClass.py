@@ -46,6 +46,11 @@ class SegNet(nn.Module):
         self.conv42 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
         self.batch42 = nn.BatchNorm2d(512, momentum=self.batchMomentum)
 
+        #convnet final layers
+        self.fcc50 = nn.Linear(512, 4096)
+        self.fcc51 = nn.Linear(4096, 4096)
+        self.fcc52 = nn.Linear(4096, self.output_channels)
+
         # decoder
         self.conv41d = nn.Conv2d(512, 512, kernel_size=3, padding=1)
         self.batch41d = nn.BatchNorm2d(512, momentum=self.batchMomentum)
@@ -54,12 +59,12 @@ class SegNet(nn.Module):
 
         self.conv31d = nn.Conv2d(512, 512, kernel_size=3, padding=1)
         self.batch31d = nn.BatchNorm2d(512, momentum=self.batchMomentum)
-        self.conv310d = nn.Conv2d(512, 256, kernel_size=3, padding=1)
+        self.conv30d = nn.Conv2d(512, 256, kernel_size=3, padding=1)
         self.batch30d = nn.BatchNorm2d(256, momentum=self.batchMomentum)
 
         self.conv21d = nn.Conv2d(256, 256, kernel_size=3, padding=1)
         self.batch21d = nn.BatchNorm2d(256, momentum=self.batchMomentum)
-        self.conv210d = nn.Conv2d(256, 128, kernel_size=3, padding=1)
+        self.conv20d = nn.Conv2d(256, 128, kernel_size=3, padding=1)
         self.batch20d = nn.BatchNorm2d(128, momentum=self.batchMomentum)
 
         self.conv11d = nn.Conv2d(128, 128, kernel_size=3, padding=1)
@@ -97,6 +102,14 @@ class SegNet(nn.Module):
         x42 = F.relu(self.batch42(self.conv42(x41)))
         # return F.relu(self.conv42(x41))
         x4Pool, xIdx4 = F.max_pool2d(x42, kernel_size=2, stride=2, return_indices=True)
+
+        #convnet final layers
+        #xView (not working) converts to a 1 x X array for some X tbc
+        # xView = x4Pool.view(-1, 2*512*2*2*16)
+        # x50 = F.relu(self.fcc50(xView))
+        # x51 = F.relu(self.fcc51(x50))
+        # x52 = F.relu(self.fcc52(x51))
+        # return x52
 
         #decoding layer
         x4Unpool = F.max_unpool2d(x4Pool, xIdx4, kernel_size=2, stride=2)
