@@ -4,13 +4,14 @@ from torch.utils.data import DataLoader
 from vocDataset import VOCDataset
 from segnetClass import SegNet
 import torch.nn as nn
-from testDataset import testDataset
+from testDataset import TestDataset
 import torchvision
 import torch
 import cv2
 import os
 import sys
 import numpy as np
+
 
 def main():
     while(True):
@@ -20,28 +21,29 @@ def main():
                                         transforms.ToTensor(),
                                         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-        trainset = VOCDataset("/home/matt/Documents/segm/VOCdevkit/VOC2007/", "JPEGImages", "SegmentationObject", annoPath="Annotations", transform=transform, segment=True)
-        #num_workers = 0 means that the mian process is doing the loading.
-        #since each worker loads a batch, then we can have batch_size*num_workers loads before erroring
-        #when the data is combined.
-        trainLoader = DataLoader(trainset, batch_size=4, shuffle=True, num_workers=2)
+        trainset = VOCDataset("/home/matt/Documents/segm/VOCdevkit/VOC2007/", "JPEGImages", "SegmentationObject",
+                              anno_path="Annotations", transform=transform, segment=True)
+        # num_workers = 0 means that the main process is doing the loading.
+        # since each worker loads a batch, then we can have batch_size*num_workers loads before erroring
+        # when the data is combined.
+        train_loader = DataLoader(trainset, batch_size=4, shuffle=True, num_workers=2)
 
-        savePath = "/home/matt/Documents/segm/weightsFile.txt"
+        save_path = "/home/matt/Documents/segm/weightsFile.txt"
         print (len(sys.argv))
-        if os.path.isfile(savePath) and len(sys.argv) == 1:
-            net = torch.load(savePath)
+        if os.path.isfile(save_path) and len(sys.argv) == 1:
+            net = torch.load(save_path)
         else:
             net = SegNet(3, 45)
-            train(net, trainLoader)
-            torch.save(net, savePath)
+            train(net, train_loader)
+            torch.save(net, save_path)
 
-        testset = testDataset("/home/matt/Documents/segm/testPhotos/", transform=transform)
-        testLoader = DataLoader(testset, batch_size=4, shuffle=False, num_workers=2)
-        test(net, testLoader)
+        testset = TestDataset("/home/matt/Documents/segm/testPhotos/", transform=transform)
+        test_loader = DataLoader(testset, batch_size=4, shuffle=False, num_workers=2)
+        test(net, test_loader)
 
         break
 
-        # dataiter = iter(trainLoader)
+        # dataiter = iter(train_loader)
         # keepContinue = True
         # while (keepContinue):
         #     try:
@@ -63,18 +65,19 @@ def main():
 
     cv2.destroyAllWindows()
 
-def train(net, trainLoader):
+
+def train(net, train_loader):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
-    #learning rate 0.1 and momentum 0.9 given by segnet paper.
+    # learning rate 0.1 and momentum 0.9 given by segnet paper.
     print ("training")
     for epoch in range(2):
 
         running_loss = 0
-        dataiter = iter(trainLoader)
-        print (len(trainLoader))
-        for i in range(len(trainLoader)): #range(len(trainLoader)) is num. iterations
-            #num iterations x batch size = num. images
+        dataiter = iter(train_loader)
+        print (len(train_loader))
+        for i in range(len(train_loader)):  # range(len(train_loader)) is num. iterations
+            # num iterations x batch size = num. images
             try:
                 data = dataiter.next()
                 print ("success")
@@ -83,8 +86,8 @@ def train(net, trainLoader):
                 # print ("guilty")
                 # continue
             inputs = data["image"]
-            labels = data["annotation"] #for segmentation, has shape (w,x,y,z) where w is batch size?
-            #x is no. channels in image, y,z are (width, height) of image. i.e. label per pixel
+            labels = data["annotation"]  # for segmentation, has shape (w,x,y,z) where w is batch size?
+            # x is no. channels in image, y,z are (width, height) of image. i.e. label per pixel
 
             optimizer.zero_grad()
 
@@ -93,7 +96,7 @@ def train(net, trainLoader):
             print (labels.shape)
             loss = criterion(outputs, labels.long())
 
-            #segment=False
+            # segment=False
             # loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -105,10 +108,11 @@ def train(net, trainLoader):
                       (epoch + 1, i + 1, running_loss / 2000))
                 running_loss = 0.0
 
-#commented lines is for batch_size=1
-def test(net, testLoader):
-    dataiter = iter(testLoader)
-    for i in range(len(testLoader)):
+
+# commented lines is for batch_size=1
+def test(net, test_loader):
+    dataiter = iter(test_loader)
+    for i in range(len(test_loader)):
         data = dataiter.next()
         output = net(data)
         # data = dataiter.next()["image"]
@@ -127,14 +131,14 @@ def test(net, testLoader):
     cv2.destroyAllWindows()
 
 
-#TODO train appropriately cf paper
-#TODO bayesian?
+# TODO train appropriately cf paper
+# TODO bayesian?
 
-#TODO batchsize of 1 gives immediate error at max_unpool2d(x4Pool...)
-#TODO batchsize of 2 with annoPath images only gives same error as:
-#TODO batchsize of 4 with imagePath images. i.e. size of tensors do not match
-#TODO since batchsize 2 with annoPath means 211 iterations, which is multiple of 422(length of annoPath)
-#TODO then not an issue with last batch having different number of stuff. therefore wat.
-#TODO taking out decoder portion of segnet succeeds until test set, but of course generates incorrect output
-#TODO as outputs are not same shape as image
+# TODO batchsize of 1 gives immediate error at max_unpool2d(x4Pool...)
+# TODO batchsize of 2 with annoPath images only gives same error as:
+# TODO batchsize of 4 with imagePath images. i.e. size of tensors do not match
+# TODO since batchsize 2 with annoPath means 211 iterations, which is multiple of 422(length of annoPath)
+# TODO then not an issue with last batch having different number of stuff. therefore wat.
+# TODO taking out decoder portion of segnet succeeds until test set, but of course generates incorrect output
+# TODO as outputs are not same shape as image
 main()

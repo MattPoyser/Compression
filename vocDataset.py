@@ -4,15 +4,16 @@ import cv2
 import os
 import xml.etree.ElementTree as ET
 
+
 class VOCDataset(Dataset):
-    def __init__(self, rootPath, imagePath, segmentPath, annoPath=None, transform=None, segment=True):
-        self.rootPath = rootPath
+    def __init__(self, root_path, image_path, segment_path, anno_path=None, transform=None, segment=True):
+        self.root_path = root_path
         self.transform = transform
         self.segment = segment
-        self.imagePath = imagePath
-        self.segmentPath = segmentPath
-        self.annoPath = annoPath
-        self.files = list(os.listdir(self.rootPath + self.segmentPath))
+        self.image_path = image_path
+        self.segment_path = segment_path
+        self.anno_path = anno_path
+        self.files = list(os.listdir(self.root_path + self.segment_path))
         # print (sorted(self.files, key=sortFunction))
 
     def __len__(self):
@@ -20,22 +21,22 @@ class VOCDataset(Dataset):
 
     def __getitem__(self, idx):
         name = "/" + self.files[idx]
-        imageName = self.rootPath + self.imagePath + name[:-4] + ".jpg"
+        image_name = self.root_path + self.image_path + name[:-4] + ".jpg"
         if self.segment:
-            annoName = self.rootPath + self.segmentPath + name
+            anno_name = self.root_path + self.segment_path + name
         else:
-            annoName = self.rootPath + self.annoPath + name[:-4] + ".xml"
-        # imageName = self.rootPath + self.imagePath + name
-        # annoName = self.rootPath + self.segmentPath + name[:-4] + ".png"
+            anno_name = self.root_path + self.anno_path + name[:-4] + ".xml"
+        # image_name = self.root_path + self.image_path + name
+        # anno_name = self.root_path + self.segment_path + name[:-4] + ".png"
 
-        # print (imageName)
-        # print (annoName)
-        image = cv2.imread(imageName, cv2.IMREAD_COLOR)
+        # print (image_name)
+        # print (anno_name)
+        image = cv2.imread(image_name, cv2.IMREAD_COLOR)
         if self.segment:
-            annotation = cv2.imread(annoName, cv2.IMREAD_COLOR)
+            annotation = cv2.imread(anno_name, cv2.IMREAD_COLOR)
         else:
             annotation = []
-            tree = ET.parse(annoName)
+            tree = ET.parse(anno_name)
             root = tree.getroot()
             for object in root.findall('object'):
                 name = object.find('name').text
@@ -54,6 +55,7 @@ class VOCDataset(Dataset):
                 # annotation = np.array(annotation)
                 annotation = annotation[0]
         return {"image": image, "annotation": annotation}
+
 
 def sortFunction(value):
     return int(value[:-4])
